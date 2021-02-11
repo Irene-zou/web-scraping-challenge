@@ -2,9 +2,9 @@ from splinter import Browser
 from bs4 import BeautifulSoup
 import pandas as pd
 
-def init_browser():
-    executable_path = {"executable_path": "/usr/local/bin/chromedriver"}
-    return Browser("chrome", **executable_path, headless=False)
+# Setup splinter
+executable_path = {'executable_path': ChromeDriverManager().install()}
+browser = Browser('chrome', **executable_path, headless=False)
 
 def Mars_scrape():
 
@@ -25,23 +25,8 @@ def Mars_scrape():
     # New browser object
     browser = init_browser()
 
-    # Changed URL to Mars Weather twitter account 
-    url = "https://twitter.com/marswxreport?lang=en"
-    browser.visit(url)
-
-    # class is "TweetTextSize"
-    # using splinter within a list comprehension to strip the tweet down to its text; 
-    # we want the top tweet, so that's index 0
-    mars_weather = [tweet.text.strip() for tweet in browser.find_by_css(".TweetTextSize")][0]
-
-    # Close the browser after scraping
-    browser.quit()
-
-    # New browser object
-    browser = init_browser()
-
     # NASA's JPL website
-    url = "https://jpl.nasa.gov/spaceimages/?search=&category=Mars"
+    url = "https://mars.nasa.gov/news/"
     browser.visit(url)
 
     # Updating Beautiful Soup
@@ -50,8 +35,8 @@ def Mars_scrape():
 
     img_source = soup.find(class_ = "carousel_item")['style']
 
-    # Needed image string is between two single quotation marks, so I'm splitting
-    # I need the second of the three pieces
+    # Split needed image string is between two single quotation marks
+    # The second of the three pieces is needed
     img_string = img_source.split("'")[1]
     
     # Need to attach the string to the url
@@ -64,7 +49,7 @@ def Mars_scrape():
     # Change to Space Facts URL
     url = "https://space-facts.com/mars/"
     
-    # Using pandas to convert the table
+    # Use pandas to convert the table
     facts = pd.read_html(url)[1]
 
     # Use to_html to render for Mongo
@@ -81,19 +66,19 @@ def Mars_scrape():
     html = browser.html
     soup = BeautifulSoup(html, "html.parser")
 
-    # I'll need to do a number of things to get image names and links:
+    # Steps to get image names and links:
 
-    # 1) Set up a loop to find all the hemisphere names, pulling by h3 tag, 
-    #    then cleaning up the names and saving them to a list
-    # 2) Set up another loop to find all the paths to the pages that have a link to the larger image
-    # 3) Set up a third loop to take browser to the new pages and grab the image link
+    # 1. Set up a loop to find all the hemisphere names, pulling by h3 tag, 
+    # 2. Clean up the names and saving them to a list
+    # 3. Set up another loop to find all the paths to the pages that have a link to the larger image
+    # 4. Set up a third loop to take browser to the new pages and grab the image link
 
-    # Step 1
+    # Step 1&2
 
-    # I'll make a list to contain the titles of the photos
+    # create a list to contain the titles of the photos
     title = []
 
-    # There are four elements to find, so I'll set this up to loop four times
+    # set up tp loop all 4 elements
     i = 0
 
     while i < 4:
@@ -104,13 +89,13 @@ def Mars_scrape():
         title.append(hemisphere)
         i += 1
     
-    # Step 2
+    # Step 3
 
-    # Now I'll need a list to contain the URL paths
+    # Create a list to contain the URL paths
     paths = []
 
-    # It turns out that there are duplicates for each path, so the loop needs to run 8 times instead of 4
-    # and I'll increment by two so that I only capture one instance of the path
+    # Run the loop 8 times to get rid of the duplicate
+    # Increment by two to capture one instance of the path
 
     i = 0
 
@@ -119,24 +104,25 @@ def Mars_scrape():
         paths.append(path)
         i+=2
 
-    # Step 3-A
+    # Step 4-1
 
-    # I need the base URL so that I can add the path for each new browser visit
+    # Use base URL to add the path for each new browser visit
     base_url = "https://astrogeology.usgs.gov"
 
-    # I'll make a list to contain full URLs
+    # create a list to contain full URLs
     url_list = []
 
-    # I'll make the full URLs by attaching the contents of my paths list to the end of the base_url
+    # Make the full URLs by attaching the contents of my paths list to the end of the base_url
     for path in paths:
         url = base_url + path
         url_list.append(url)
-    # Step 3-B
+        
+    # Step 4-2
 
-    # I'll make a list to hold the image url I'm going to scrape
+    # create a list to hold the image url to be scraped
     image_url = []
 
-    # I'll cycle through the URLs in my url_list, taking the browser to each and getting the image URL out
+    # Cycle through the URLs in url_list, taking the browser to each and getting the image URL out
 
     for url in url_list:
         
@@ -157,7 +143,7 @@ def Mars_scrape():
 
     # Now use a while loop to put them into a dictionary
     
-    # I'll store them in this list temporarily:
+    # Store them in this list temporarily:
     hemisphere_image_urls = []
 
     # The while loop will allow me to use an index
@@ -176,7 +162,6 @@ def Mars_scrape():
     mars_data = {
         "Mars_News_Headline": headline,
         "Mars_News_Article": article,
-        "Mars_Weather": mars_weather,
         "Mars_Featured_Image": featured_image_url,
         "Mars_Facts": mars_facts,
         "Mars_Hemisphere": hemisphere_image_urls
